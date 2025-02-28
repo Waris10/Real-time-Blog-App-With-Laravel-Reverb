@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Blog;
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Events\BlogCreatedEvent;
+use App\Events\BlogDeletedEvent;
+use App\Events\BlogUpdatedEvent;
 
 class BlogController extends Controller
 {
@@ -24,10 +27,11 @@ class BlogController extends Controller
         ]);
 
         $user = $request->user();
-        $user->blogs()->create([
+        $blog = $user->blogs()->create([
             'title' => $request->title,
             'content' => $request->content,
         ]);
+        event(new BlogCreatedEvent($blog));
 
         return redirect()->back()->with('success', 'Blog created successfully');
     }
@@ -47,7 +51,7 @@ class BlogController extends Controller
             'title' => $request->title,
             'content' => $request->content,
         ]);
-
+        event(new BlogUpdatedEvent($blog));
         return redirect()->back()->with('success', 'Blog updated successfully');
     }
 
@@ -55,12 +59,12 @@ class BlogController extends Controller
     public function destroy(Blog $blog, Request $request)
     {
         $user = $request->user();
-
         if ($user->id !== $blog->user_id) {
             return redirect()->back()->with('error', 'You are not authorized to delete this blog');
         }
 
         $blog->delete();
+        event(new BlogDeletedEvent($blog->id));
         return redirect()->back()->with('success', 'Blog deleted successfully');
     }
 }
